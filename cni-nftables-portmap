@@ -78,6 +78,9 @@ def del_cmd(cni_data):
             pass
 
 
+def check_cmd(_cni_data):
+    pass # TODO: Check firewall rule is in place
+
 if __name__ == "__main__":
     cni_data = json.load(sys.stdin)
     cni_command = os.environ["CNI_COMMAND"]
@@ -85,7 +88,8 @@ if __name__ == "__main__":
     cmd_table = {
         "VERSION": version_cmd,
         "ADD": add_cmd,
-        "DEL": del_cmd
+        "DEL": del_cmd,
+        "CHECK": check_cmd,
     }
 
     try:
