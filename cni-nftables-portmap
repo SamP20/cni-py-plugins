@@ -78,19 +78,6 @@ def del_cmd(cni_data):
             pass
 
 
-def debug_cni(cni_data):
-    os.makedirs("/var/run/cni/", exist_ok=True)
-
-    cni_command = os.environ["CNI_COMMAND"]
-
-    with open(f"/var/run/cni/{cni_command}_state.json", "w") as fh:
-        json.dump(cni_data, fh, indent=2)
-
-    with open(f"/var/run/cni/{cni_command}_env.txt", "w") as fh:
-        for k, v in os.environ.items():
-            fh.write(f"{k}={v}\n")
-
-
 if __name__ == "__main__":
     cni_data = json.load(sys.stdin)
     cni_command = os.environ["CNI_COMMAND"]
@@ -106,6 +93,5 @@ if __name__ == "__main__":
     except KeyError:
         pass
 
-    # debug_cni(cni_data)
 
     json.dump(cni_data, sys.stdout)
