@@ -10,30 +10,31 @@ cp cni-nftables-* /usr/local/lib/cni/
 
 ```
 {
-  "cniVersion": "0.4.0",
-  "name": "container_net",
-  "plugins": [
-    {
-        "type": "ptp",
-        "ipMasq": false,
-        "ipam": {
-            "type": "host-local",
-            "subnet": "172.16.1.0/24",
-            "routes": [
-                { "dst": "0.0.0.0/0" }
-            ]
+    "cniVersion": "0.4.0",
+    "name": "container_net",
+    "plugins": [
+        {
+            "type": "ptp",
+            "ipMasq": false,
+            "ipam": {
+                "type": "host-local",
+                "subnet": "172.16.1.0/24",
+                "routes": [
+                    { "dst": "0.0.0.0/0" }
+                ]
+            }
+        },
+        {
+            "type": "cni-nftables-portmap",
+            "capabilities": {"portMappings": true},
+            "nftablesConfig": {
+                "family": "ip",
+                "table": "router",
+                "mapname": "port_forwards"
+            }
         }
-    },
-    {
-      "type": "cni-nftables-portmap",
-      "capabilities": {"portMappings": true},
-      "nftablesConfig": {
-        "table": "router",
-        "mapname": "port_forwards"
-      }
+    ]
     }
-  ]
-}
 ```
 
 Note that `ipMasq` must be set to false as this uses IPTables rules.

@@ -25,16 +25,18 @@ def version_cmd(cni_data):
 
 def add_cmd(cni_data):
     nft_conf = cni_data["nftablesConfig"]
+    nft_family = nft_conf["family"]
     nft_table = nft_conf["table"]
     nft_mapname = nft_conf["mapname"]
 
     mappings = cni_data["runtimeConfig"]["portMappings"]
+    # Strip off the CIDR block
     container_ip = cni_data["prevResult"]["ips"][0]["address"].split("/")[0]
 
     for mapping in mappings:
         nft_cmd = {"nftables": [
             { "add": { "element":{
-                "family": "ip",
+                "family": nft_family,
                 "table": nft_table,
                 "name": nft_mapname,
                 "elem": [[
@@ -49,6 +51,7 @@ def add_cmd(cni_data):
 
 def del_cmd(cni_data):
     nft_conf = cni_data["nftablesConfig"]
+    nft_family = nft_conf["family"]
     nft_table = nft_conf["table"]
     nft_mapname = nft_conf["mapname"]
 
@@ -58,7 +61,7 @@ def del_cmd(cni_data):
     for mapping in mappings:
         nft_cmd = {"nftables": [
             { "delete": { "element":{
-                "family": "ip",
+                "family": nft_family,
                 "table": nft_table,
                 "name": nft_mapname,
                 "elem": [[
