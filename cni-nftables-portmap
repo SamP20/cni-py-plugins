@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+import os
+import nftables
+
+
+class NftablesError(RuntimeError):
+    pass
+
+
+def run_nft_cmd(nft_cmd):
+    nft = nftables.Nftables()
+    nft.json_validate(nft_cmd)
+    rc, output, error = nft.json_cmd(nft_cmd)
+    if rc != 0:
+        raise NftablesError(f"Error running nftables command: {error}")
+    return output
+
+
+def version_cmd(cni_data):
+    cni_data["supportedVersions"] = ["0.4.0", "1.0.0"]
+
+
+def add_cmd(cni_data):
+    nft_conf = cni_data["nftablesConfig"]
+    nft_table = nft_conf["table"]
+    nft_mapname = nft_conf["mapname"]
+
+    mappings = cni_data["runtimeConfig"]["portMappings"]
+    container_ip = cni_data["prevResult"]["ips"][0]["address"].split("/")[0]
+
+    for mapping in mappings:
+        nft_cmd = {"nftables": [
+            { "add": { "element":{
+                "family": "ip",
+                "table": nft_table,
+                "name": nft_mapname,
+                "elem": [[
+                    mapping["hostPort"],
+                    {"concat": [container_ip, mapping['containerPort']]}
+                ]]
+            }}}
+        ]}
+
+        run_nft_cmd(nft_cmd)
+
+
+def del_cmd(cni_data):
+    nft_conf = cni_data["nftablesConfig"]
+    nft_table = nft_conf["table"]
+    nft_mapname = nft_conf["mapname"]
+
+    mappings = cni_data["runtimeConfig"]["portMappings"]
+    container_ip = cni_data["prevResult"]["ips"][0]["address"].split("/")[0]
+
+    for mapping in mappings:
+        nft_cmd = {"nftables": [
+            { "delete": { "element":{
+                "family": "ip",
+                "table": nft_table,
+                "name": nft_mapname,
+                "elem": [[
+                    mapping["hostPort"],
+                    {"concat": [container_ip, mapping['containerPort']]}
+                ]]
+            }}}
+        ]}
+
+        try:
+            run_nft_cmd(nft_cmd)
+        except NftablesError:
+            # Likely already removed
+            pass
+
+
+def debug_cni(cni_data):
+    os.makedirs("/var/run/cni/", exist_ok=True)
+
+    cni_command = os.environ["CNI_COMMAND"]
+
+    with open(f"/var/run/cni/{cni_command}_state.json", "w") as fh:
+        json.dump(cni_data, fh, indent=2)
+
+    with open(f"/var/run/cni/{cni_command}_env.txt", "w") as fh:
+        for k, v in os.environ.items():
+            fh.write(f"{k}={v}\n")
+
+
+if __name__ == "__main__":
+    cni_data = json.load(sys.stdin)
+    cni_command = os.environ["CNI_COMMAND"]
+
+    cmd_table = {
+        "VERSION": version_cmd,
+        "ADD": add_cmd,
+        "DEL": del_cmd
+    }
+
+    try:
+        cmd_table[cni_command](cni_data)
+    except KeyError:
+        pass
+
+    # debug_cni(cni_data)
+
+    json.dump(cni_data, sys.stdout)
